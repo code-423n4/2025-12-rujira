@@ -1,0 +1,19 @@
+[package]
+authors = ["codehans <94654388+codehans@users.noreply.github.com>"]
+edition = { workspace = true }
+name    = "rujira-rs-testing"
+version = { workspace = true }
+
+[features]
+
+[dependencies]
+anybuf          = { workspace = true }
+anyhow          = { workspace = true }
+cosmwasm-schema = { workspace = true }
+cosmwasm-std    = { workspace = true }
+cw-multi-test   = { workspace = true }
+cw-storage-plus = { workspace = true }
+prost           = { workspace = true }
+rujira-rs       = { workspace = true, features = ["testing-helpers"], default-features = false }
+schemars        = { workspace = true }
+serde           = { workspace = true }

@@ -1,0 +1,77 @@
+[package]
+edition = { workspace = true }
+name    = "rujira-rs"
+version = "0.0.1"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anybuf                 = { workspace = true }
+cosmos-sdk-proto       = { workspace = true }
+cosmwasm-schema        = { workspace = true }
+cosmwasm-schema-derive = { workspace = true }
+cosmwasm-std           = { workspace = true }
+cw-storage-plus        = { workspace = true }
+cw-utils               = { workspace = true }
+itertools              = { workspace = true }
+postcard               = { workspace = true }
+prost                  = { workspace = true }
+schemars               = { workspace = true }
+serde                  = { workspace = true }
+thiserror              = { workspace = true }
+
+[features]
+# Testing helpers bundle - for rujira-rs-testing convenience only
+# DO NOT use this in contracts. Use explicit features instead.
+testing-helpers = [
+  "asset",
+  "share-pool",
+  "token-factory",
+  "callback",
+  "decimal-scaled",
+  "premium",
+  "oracle",
+  "query",
+  "proto",
+  "reply",
+  "schema",
+  "bid-pool",
+  "exchange",
+  "coin",
+  "coins",
+]
+
+asset               = []
+bid-pool            = []
+callback            = []
+coin                = ["asset"]
+coins               = []
+decimal-scaled      = []
+exchange            = ["bid-pool", "interface-fin", "interface-bow"]
+merge-n-by-iter     = []
+native-balance-plus = []
+oracle              = ["query"]
+premium             = []
+proto               = []
+query               = ["asset", "proto"]
+reply               = []
+schema              = []
+share-pool          = []
+token-factory       = []
+
+interface-account        = []
+interface-bow            = ["callback", "token-factory"]
+interface-demo           = ["asset", "query"]
+interface-fin            = ["asset", "callback"]
+interface-ghost          = ["callback", "decimal-scaled", "oracle", "token-factory"]
+interface-merge          = []
+interface-mint           = ["token-factory"]
+interface-orca           = ["callback", "interface-bow"]
+interface-pilot          = ["callback"]
+interface-revenue        = []
+interface-staking        = ["token-factory"]
+interface-template       = []
+interface-thorchain-swap = ["asset", "callback", "interface-ghost", "query", "interface-bow"]
+
+[dev-dependencies]
+proptest = { workspace = true }
