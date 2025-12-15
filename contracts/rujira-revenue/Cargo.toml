@@ -1,0 +1,39 @@
+[package]
+authors = ["codehans <94654388+codehans@users.noreply.github.com>"]
+edition = "2021"
+name    = "rujira-revenue"
+version = "1.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.thorchain]
+# See more about format in https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table
+auditors = ["Zellic", "Halborn"]
+audits = [
+  "https://github.com/Zellic/publications/blob/master/Rujira%20-%20Zellic%20Audit%20Report.pdf",
+  "https://www.halborn.com/audits/thorchain/rujira-staking-319044",
+]
+commit = "80b48eddc0f16f735855442fdbc5423ac5398ff6"
+deployers = ["thor1e0lmk5juawc46jwjwd0xfz587njej7ay5fh6cd"]
+docs = "https://docs.rujira.network/understanding-ruji-token"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+
+[dependencies]
+cosmwasm-schema = { workspace = true }
+cosmwasm-std    = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw2             = { workspace = true }
+rujira-rs       = { workspace = true, features = ["interface-revenue", "share-pool"], default-features = false }
+schemars        = { workspace = true }
+serde           = { workspace = true }
+thiserror       = { workspace = true }
+
+[dev-dependencies]
+cw-multi-test = { workspace = true }

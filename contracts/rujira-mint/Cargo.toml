@@ -1,0 +1,39 @@
+[package]
+authors = []
+edition = { workspace = true }
+name    = "rujira-mint"
+version = "1.0.1"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.thorchain]
+# See more about format in https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table
+auditors = ["Zellic"]
+audits = [
+  "https://github.com/Zellic/publications/blob/master/Rujira%20-%20Zellic%20Audit%20Report.pdf",
+]
+commit = "25252ec557320d3fb507ad906e08ffa4fa4f5494"
+deployers = ["thor1e0lmk5juawc46jwjwd0xfz587njej7ay5fh6cd"]
+docs = "https://docs.rujira.network/understanding-ruji-token"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cosmwasm-schema = { workspace = true }
+cosmwasm-std    = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw-utils        = { workspace = true }
+cw2             = { workspace = true }
+rujira-rs       = { workspace = true, features = ["interface-mint"], default-features = false }
+schemars        = { workspace = true }
+serde           = { workspace = true }
+thiserror       = { workspace = true }
+
+[dev-dependencies]
+cw-multi-test     = { workspace = true }
+rujira-rs-testing = { workspace = true }

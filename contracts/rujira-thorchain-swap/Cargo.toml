@@ -1,0 +1,42 @@
+[package]
+authors = []
+edition = { workspace = true }
+name    = "rujira-thorchain-swap"
+version = "0.0.7"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.thorchain]
+# See more about format in https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table
+auditors = [""]
+audits   = [""]
+docs     = ""
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+mock    = ["anyhow", "cw-multi-test", "rujira-rs-testing", "rujira-ghost-vault"]
+
+[dependencies]
+anyhow             = { workspace = true, optional = true }
+cosmwasm-schema    = { workspace = true }
+cosmwasm-std       = { workspace = true }
+cw-multi-test      = { workspace = true, optional = true }
+cw-storage-plus    = { workspace = true }
+cw-utils           = { workspace = true }
+cw2                = { workspace = true }
+rujira-ghost-vault = { path = "../rujira-ghost-vault", optional = true }
+rujira-rs          = { workspace = true, features = ["interface-thorchain-swap", "share-pool", "coin", "query"], default-features = false }
+rujira-rs-testing  = { workspace = true, optional = true }
+schemars           = { workspace = true }
+serde              = { workspace = true }
+thiserror          = { workspace = true }
+
+[dev-dependencies]
+anyhow             = { workspace = true }
+cw-multi-test      = { workspace = true }
+rujira-ghost-vault = { path = "../rujira-ghost-vault" }
+rujira-rs-testing  = { workspace = true }

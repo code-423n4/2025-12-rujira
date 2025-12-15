@@ -1,0 +1,1244 @@
+{
+  "contract_name": "rujira-pilot",
+  "contract_version": "0.0.0",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "required": [
+      "denoms",
+      "fee_address",
+      "fee_maker",
+      "fee_taker",
+      "market_makers",
+      "tick"
+    ],
+    "properties": {
+      "denoms": {
+        "description": "The denoms of the pair. The second denom is the quote denom",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Denoms"
+          }
+        ]
+      },
+      "fee_address": {
+        "description": "The destination address for fees collected",
+        "type": "string"
+      },
+      "fee_maker": {
+        "description": "The fee charged on withdrawals from filled limit orders",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Decimal"
+          }
+        ]
+      },
+      "fee_taker": {
+        "description": "The fee charged on swaps, and instantly filled limit orders",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Decimal"
+          }
+        ]
+      },
+      "market_makers": {
+        "description": "The address of the market maker contract. Must implement [crate::market_maker::MarketMakerQuery], and return funds with [CallbackMsg::MarketMaker]",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "oracles": {
+        "type": [
+          "array",
+          "null"
+        ],
+        "items": {
+          "$ref": "#/definitions/Layer1Asset"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      },
+      "tick": {
+        "description": "Ticked truncates Decimal to significant figures. This accommodates prices decreasing and adding zeroes, but may need adjusting for better UX as prices increase (e.g. 4sf is plenty for most tokens < $10 - 1 cent, but above $1000 it creates a $1 tick)",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Tick"
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "definitions": {
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      },
+      "Denoms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      },
+      "Layer1Asset": {
+        "type": "object",
+        "required": [
+          "chain",
+          "symbol"
+        ],
+        "properties": {
+          "chain": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Tick": {
+        "type": "integer",
+        "format": "uint8",
+        "minimum": 0.0
+      }
+    }
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "description": "Callable interfaces",
+    "oneOf": [
+      {
+        "description": "Executes a market trade based on current order book.",
+        "type": "object",
+        "required": [
+          "swap"
+        ],
+        "properties": {
+          "swap": {
+            "$ref": "#/definitions/SwapRequest"
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Manage all orders Submit a list of price and target offer amounts 0. All filled orders will be withdrawn For each entry: 1. If no order exists at that price, one will be created 2. If an order exists, and the `offer_amount` is greater than the target amount, it will be reduced 3. If the `offer_amount` is less than the target amount, it will be increased\n\nFunds sent must be equal to the net change of balances. Funds withdrawn in step 0 and retracted in 1's, can be reused to fund orders in 1 and 3",
+        "type": "object",
+        "required": [
+          "order"
+        ],
+        "properties": {
+          "order": {
+            "type": "array",
+            "items": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "$ref": "#/definitions/Side"
+                    },
+                    {
+                      "$ref": "#/definitions/Price"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/Uint128"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  ],
+                  "maxItems": 3,
+                  "minItems": 3
+                }
+              },
+              {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/CallbackData"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "arb"
+        ],
+        "properties": {
+          "arb": {
+            "type": "object",
+            "properties": {
+              "then": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Binary"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Callback action to support an arb prior to a swap execution",
+        "type": "object",
+        "required": [
+          "do_swap"
+        ],
+        "properties": {
+          "do_swap": {
+            "type": "array",
+            "items": [
+              {
+                "$ref": "#/definitions/Addr"
+              },
+              {
+                "$ref": "#/definitions/SwapRequest"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Callback action to support an arb prior to a order execution",
+        "type": "object",
+        "required": [
+          "do_order"
+        ],
+        "properties": {
+          "do_order": {
+            "type": "array",
+            "items": [
+              {
+                "$ref": "#/definitions/Addr"
+              },
+              {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "$ref": "#/definitions/Side"
+                        },
+                        {
+                          "$ref": "#/definitions/Price"
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "$ref": "#/definitions/Uint128"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      ],
+                      "maxItems": 3,
+                      "minItems": 3
+                    }
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/CallbackData"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Addr": {
+        "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+        "type": "string"
+      },
+      "Binary": {
+        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+        "type": "string"
+      },
+      "CallbackData": {
+        "$ref": "#/definitions/Binary"
+      },
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      },
+      "Price": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "fixed"
+            ],
+            "properties": {
+              "fixed": {
+                "$ref": "#/definitions/Decimal"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "oracle"
+            ],
+            "properties": {
+              "oracle": {
+                "type": "integer",
+                "format": "int16"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Side": {
+        "type": "string",
+        "enum": [
+          "base",
+          "quote"
+        ]
+      },
+      "SwapRequest": {
+        "anyOf": [
+          {
+            "description": "YOLO swap for whatever you can get",
+            "type": "object",
+            "properties": {
+              "callback": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/CallbackData"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Return at least `min_return` or fail",
+            "type": "object",
+            "required": [
+              "min_return"
+            ],
+            "properties": {
+              "callback": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/CallbackData"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "min_return": {
+                "$ref": "#/definitions/Uint128"
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Return exactly `exact_return` or fail",
+            "type": "object",
+            "required": [
+              "exact_return"
+            ],
+            "properties": {
+              "callback": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/CallbackData"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "exact_return": {
+                "$ref": "#/definitions/Uint128"
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Swap as much of the input as possible at or better than `price`, returning any unused offer",
+            "type": "object",
+            "required": [
+              "price"
+            ],
+            "properties": {
+              "callback": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/CallbackData"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "price": {
+                "description": "The Limit price. N.B. this is quoted in the `ask` token. I.e a buy will be a \"normal\" price, a sell will be 1/\"normal\" price;",
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  }
+                ]
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Uint128": {
+        "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+        "type": "string"
+      }
+    }
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "description": "Standard interface to query contract state",
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "config"
+        ],
+        "properties": {
+          "config": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "simulate"
+        ],
+        "properties": {
+          "simulate": {
+            "$ref": "#/definitions/Coin"
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Find a specific order for a user at a price",
+        "type": "object",
+        "required": [
+          "order"
+        ],
+        "properties": {
+          "order": {
+            "type": "array",
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/Side"
+              },
+              {
+                "$ref": "#/definitions/Price"
+              }
+            ],
+            "maxItems": 3,
+            "minItems": 3
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "description": "Paginate user orders. Upper limit of 30 per page",
+        "type": "object",
+        "required": [
+          "orders"
+        ],
+        "properties": {
+          "orders": {
+            "type": "object",
+            "required": [
+              "owner"
+            ],
+            "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint8",
+                "minimum": 0.0
+              },
+              "offset": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint8",
+                "minimum": 0.0
+              },
+              "owner": {
+                "type": "string"
+              },
+              "side": {
+                "description": "When Side is provided, orders are sorted by price N.B: This sorts on the underlying Price key, not the effective execution price, so Oracle and Fixed prices will be grouped",
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Side"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "book"
+        ],
+        "properties": {
+          "book": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint8",
+                "minimum": 0.0
+              },
+              "offset": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Coin": {
+        "type": "object",
+        "required": [
+          "amount",
+          "denom"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/definitions/Uint128"
+          },
+          "denom": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      },
+      "Price": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "fixed"
+            ],
+            "properties": {
+              "fixed": {
+                "$ref": "#/definitions/Decimal"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "oracle"
+            ],
+            "properties": {
+              "oracle": {
+                "type": "integer",
+                "format": "int16"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Side": {
+        "type": "string",
+        "enum": [
+          "base",
+          "quote"
+        ]
+      },
+      "Uint128": {
+        "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+        "type": "string"
+      }
+    }
+  },
+  "migrate": null,
+  "sudo": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SudoMsg",
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "update_config"
+        ],
+        "properties": {
+          "update_config": {
+            "type": "object",
+            "properties": {
+              "fee_address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "fee_maker": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fee_taker": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "market_makers": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "oracles": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/definitions/Layer1Asset"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "tick": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Tick"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      },
+      "Layer1Asset": {
+        "type": "object",
+        "required": [
+          "chain",
+          "symbol"
+        ],
+        "properties": {
+          "chain": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Tick": {
+        "type": "integer",
+        "format": "uint8",
+        "minimum": 0.0
+      }
+    }
+  },
+  "responses": {
+    "book": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BookResponse",
+      "type": "object",
+      "required": [
+        "base",
+        "quote"
+      ],
+      "properties": {
+        "base": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BookItemResponse"
+          }
+        },
+        "quote": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BookItemResponse"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "BookItemResponse": {
+          "type": "object",
+          "required": [
+            "price",
+            "total"
+          ],
+          "properties": {
+            "price": {
+              "$ref": "#/definitions/Decimal"
+            },
+            "total": {
+              "$ref": "#/definitions/Uint128"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        },
+        "Uint128": {
+          "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "config": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ConfigResponse",
+      "type": "object",
+      "required": [
+        "denoms",
+        "fee_address",
+        "fee_maker",
+        "fee_taker",
+        "market_makers",
+        "tick"
+      ],
+      "properties": {
+        "denoms": {
+          "description": "See [InstantiateMsg::denoms]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Denoms"
+            }
+          ]
+        },
+        "fee_address": {
+          "description": "See [InstantiateMsg::fee_address]",
+          "type": "string"
+        },
+        "fee_maker": {
+          "description": "See [InstantiateMsg::fee_maker]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal"
+            }
+          ]
+        },
+        "fee_taker": {
+          "description": "See [InstantiateMsg::fee_taker]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal"
+            }
+          ]
+        },
+        "market_makers": {
+          "description": "See [InstantiateMsg::market_maker]",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "oracles": {
+          "description": "See [InstantiateMsg::oracles]",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/Layer1Asset"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "tick": {
+          "description": "See [InstantiateMsg::tick]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Tick"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        },
+        "Denoms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "Layer1Asset": {
+          "type": "object",
+          "required": [
+            "chain",
+            "symbol"
+          ],
+          "properties": {
+            "chain": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Tick": {
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0.0
+        }
+      }
+    },
+    "order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderResponse",
+      "type": "object",
+      "required": [
+        "filled",
+        "offer",
+        "owner",
+        "price",
+        "rate",
+        "remaining",
+        "side",
+        "updated_at"
+      ],
+      "properties": {
+        "filled": {
+          "description": "Amount of filled order awaiting withdrawal",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "offer": {
+          "description": "Offer amount at updated_at time",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "owner": {
+          "description": "The account which placed the order",
+          "type": "string"
+        },
+        "price": {
+          "description": "The quote price of this order",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Price"
+            }
+          ]
+        },
+        "rate": {
+          "description": "The rate at which this order would execute at the current moment in time",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Decimal"
+            }
+          ]
+        },
+        "remaining": {
+          "description": "The remaining offer amount",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
+        },
+        "side": {
+          "description": "The side of the order",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Side"
+            }
+          ]
+        },
+        "updated_at": {
+          "description": "The last time this order was touched (created, incremented or reduced) in an Order execution",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        },
+        "Price": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "fixed"
+              ],
+              "properties": {
+                "fixed": {
+                  "$ref": "#/definitions/Decimal"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "oracle"
+              ],
+              "properties": {
+                "oracle": {
+                  "type": "integer",
+                  "format": "int16"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Side": {
+          "type": "string",
+          "enum": [
+            "base",
+            "quote"
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint128": {
+          "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+          "type": "string"
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "orders": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrdersResponse",
+      "type": "object",
+      "required": [
+        "orders"
+      ],
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderResponse"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Decimal": {
+          "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+          "type": "string"
+        },
+        "OrderResponse": {
+          "type": "object",
+          "required": [
+            "filled",
+            "offer",
+            "owner",
+            "price",
+            "rate",
+            "remaining",
+            "side",
+            "updated_at"
+          ],
+          "properties": {
+            "filled": {
+              "description": "Amount of filled order awaiting withdrawal",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "offer": {
+              "description": "Offer amount at updated_at time",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "owner": {
+              "description": "The account which placed the order",
+              "type": "string"
+            },
+            "price": {
+              "description": "The quote price of this order",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Price"
+                }
+              ]
+            },
+            "rate": {
+              "description": "The rate at which this order would execute at the current moment in time",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Decimal"
+                }
+              ]
+            },
+            "remaining": {
+              "description": "The remaining offer amount",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                }
+              ]
+            },
+            "side": {
+              "description": "The side of the order",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Side"
+                }
+              ]
+            },
+            "updated_at": {
+              "description": "The last time this order was touched (created, incremented or reduced) in an Order execution",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "Price": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "fixed"
+              ],
+              "properties": {
+                "fixed": {
+                  "$ref": "#/definitions/Decimal"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "oracle"
+              ],
+              "properties": {
+                "oracle": {
+                  "type": "integer",
+                  "format": "int16"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Side": {
+          "type": "string",
+          "enum": [
+            "base",
+            "quote"
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint128": {
+          "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+          "type": "string"
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "simulate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SimulationResponse",
+      "type": "object",
+      "required": [
+        "fee",
+        "returned"
+      ],
+      "properties": {
+        "fee": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "returned": {
+          "$ref": "#/definitions/Uint128"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Uint128": {
+          "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+          "type": "string"
+        }
+      }
+    }
+  }
+}
