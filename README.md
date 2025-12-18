@@ -59,11 +59,12 @@ The scope of this contest involves the `rujira-account`, `rujira-ghost-credit`, 
 
 ### Files in scope
 
-| Contract Paths |
-| ------ |
-| [contracts/rujira-account/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-account/src) | 
-| [contracts/rujira-ghost-credit/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-ghost-credit/src) |
-| [contracts/rujira-ghost-vault/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-ghost-vault/src) |
+| Contract Paths | nSLOC |
+| ------ | ------ |
+| [contracts/rujira-account/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-account/src) | 46 |
+| [contracts/rujira-ghost-credit/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-ghost-credit/src) | 1351 |
+| [contracts/rujira-ghost-vault/src/\*\*.\*\*](https://github.com/code-423n4/2025-12-rujira/tree/main/contracts/rujira-ghost-vault/src) | 1202 |
+| **Total** | **2599** |
 
 ### Files out of scope
 
